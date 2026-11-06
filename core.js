@@ -95,9 +95,21 @@
       ${err ? `<div class="panel" style="border-color:var(--bad)">${esc(err)}</div>` : ''}
       <div class="row" style="justify-content:center">You'll appear as ${Hub.chipOf(ident)}</div>
       <button class="btn big pulse" id="create">Create Room</button>
+      <div class="or"><span>or join a friend's room</span></div>
+      <form class="joinbox" id="jf" autocomplete="off"><input id="jc" maxlength="8" placeholder="ROOM CODE" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Room code"><button class="btn alt" id="jb" type="submit">Join</button></form>
       <div class="marq">${Hub.games.slice(0, 14).map(g => `<span>${g.icon} ${esc(g.name)}</span>`).join('')}<span>+ ${Math.max(0, Hub.games.length - 14)} more</span></div>
     </div>`;
+    $('#jc').oninput = e => { const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (v !== e.target.value) e.target.value = v; };
+    $('#jf').onsubmit = e => { e.preventDefault(); joinByCode($('#jc').value); };
     $('#create').onclick = () => { Hub.sfx('pop'); fatal = null; wantCreate = true; $('#create').disabled = true; $('#create').textContent = 'Creating…'; if (ws && ws.readyState === 1) net({ t: 'create', name: ident.name, color: ident.color }); else connect(); };
+  }
+
+  function joinByCode(raw) {
+    const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const inp = $('#jc'), btn = $('#jb');
+    if (code.length < 4) { toast('Type the room code your friend sees (5 letters/numbers).'); if (inp) { inp.classList.add('shake'); setTimeout(() => inp.classList.remove('shake'), 400); inp.focus(); } return; }
+    Hub.sfx('pop'); fatal = null; roomCode = code; if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
+    if (ws && ws.readyState === 1) net({ t: 'join', code, name: ident.name, color: ident.color }); else connect();
   }
 
   /* ---------- room shell ---------- */
@@ -133,8 +145,9 @@
     st.innerHTML = `<section class="lobby">
       <div class="col">
         <div class="panel"><h2>📣 Invite players</h2>
+          <div class="bigcode" title="Friends can type this on the home page"><small>Room code</small><b>${esc(R.code)}</b></div>
           <div class="linkbox"><input readonly id="lk" value="${esc(link())}"><button class="btn sm" id="cp">Copy</button><button class="btn sm alt hide" id="sh">Share</button></div>
-          <p class="muted" style="margin:6px 0 0;font-size:14px">Anyone who opens this link joins instantly with a random name & colour.</p></div>
+          <p class="muted" style="margin:6px 0 0;font-size:14px">Share the link — or friends can open the home page and type the room code above. Everyone gets a random name & colour.</p></div>
         <div class="panel"><div class="row"><h2>👥 Players <span class="muted" id="pc"></span></h2><span class="spacer"></span><button class="btn sm alt hide" id="addbot">+ Bot</button></div><div class="plist" id="plist"></div></div>
       </div>
       <div class="panel"><h2 id="pick-h"></h2>
